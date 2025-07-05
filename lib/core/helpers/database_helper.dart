@@ -24,8 +24,8 @@ class DatabaseHelper {
       CREATE TABLE todos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
-        descripcion TEXT NOT NULL,
-        fechaLimite TEXT NOT NULL,
+        description TEXT NOT NULL,
+        fechaLimite DATETIME,
         isCompleted INTEGER NOT NULL DEFAULT 0
       )
     ''');

@@ -6,7 +6,7 @@ import 'package:test_todo/infrastructure/models/todo_request.dart';
 abstract class TodoRepository {
   Future<Either<Failures, List<Todo>>> getTodos();
   Future<Either<Failures, bool>> createTodo(TodoRequest todoRequest);
-  Future<Either<Failures, bool>> updateTodo(String id, TodoRequest todoRequest);
-  Future<Either<Failures, bool>> deleteTodo(String id);
+  Future<Either<Failures, bool>> updateTodo(int id, TodoRequest todoRequest);
+  Future<Either<Failures, bool>> deleteTodo(int id);
   Future<Either<Failures, bool>> toggleTodoStatus(String id);
 } 

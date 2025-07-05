@@ -31,7 +31,7 @@ class TodoRepositoryImpl implements TodoRepository {
   }
 
   @override
-  Future<Either<Failures, bool>> updateTodo(String id, TodoRequest todoRequest) async {
+  Future<Either<Failures, bool>> updateTodo(int id, TodoRequest todoRequest) async {
     try {
       final result = await _todoDatasource.updateTodo(id, todoRequest);
       return Right(result);
@@ -41,7 +41,7 @@ class TodoRepositoryImpl implements TodoRepository {
   }
 
   @override
-  Future<Either<Failures, bool>> deleteTodo(String id) async {
+  Future<Either<Failures, bool>> deleteTodo(int id) async {
     try {
       final result = await _todoDatasource.deleteTodo(id);
       return Right(result);

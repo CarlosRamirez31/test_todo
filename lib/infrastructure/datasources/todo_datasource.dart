@@ -8,8 +8,8 @@ import 'package:test_todo/infrastructure/models/todo_response.dart';
 abstract class TodoDatasource {
   Future<List<Todo>> getTodos();
   Future<bool> createTodo(TodoRequest todoRequest);
-  Future<bool> updateTodo(String id, TodoRequest todoRequest);
-  Future<bool> deleteTodo(String id);
+  Future<bool> updateTodo(int id, TodoRequest todoRequest);
+  Future<bool> deleteTodo(int id);
   Future<bool> toggleTodoStatus(String id);
 }
 
@@ -44,7 +44,7 @@ class TodoDatasourceImpl implements TodoDatasource {
   }
 
   @override
-  Future<bool> updateTodo(String id, TodoRequest todoRequest) async {
+  Future<bool> updateTodo(int id, TodoRequest todoRequest) async {
     try {
       final db = await _database;
 
@@ -52,7 +52,7 @@ class TodoDatasourceImpl implements TodoDatasource {
         'todos',
         todoRequest.toJson(),
         where: 'id = ?',
-        whereArgs: [int.parse(id)],
+        whereArgs: [id],
       );
 
       return true;
@@ -62,10 +62,10 @@ class TodoDatasourceImpl implements TodoDatasource {
   }
 
   @override
-  Future<bool> deleteTodo(String id) async {
+  Future<bool> deleteTodo(int id) async {
     try {
       final db = await _database;
-      await db.delete('todos', where: 'id = ?', whereArgs: [int.parse(id)]);
+      await db.delete('todos', where: 'id = ?', whereArgs: [id]);
       return true;
     } on DatabaseException catch (e) {
       throw DatabaseFailure(message: e.toString());

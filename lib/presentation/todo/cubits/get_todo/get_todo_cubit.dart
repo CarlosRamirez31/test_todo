@@ -66,6 +66,9 @@ class GetTodoCubit extends Cubit<GetTodoState> {
         return todoDate.isAtSameMomentAs(filterDate);
       }).toList();
     }
+    
+    
+    if (isClosed) return;
 
     emit(GetTodoLoaded(todos: filteredTodos));
   }

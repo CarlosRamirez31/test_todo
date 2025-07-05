@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:test_todo/presentation/todo/cubits/todo_filter/todo_filter_cubit.dart';
 import 'core/config/router/app_route.dart';
 import 'core/config/theme/app_theme.dart';
 import 'dependency_injection.dart';
@@ -23,7 +24,10 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-      providers: [BlocProvider(create: (_) => GetIt.I<ThemeCubit>())],
+      providers: [
+        BlocProvider(create: (_) => GetIt.I<ThemeCubit>()),
+        BlocProvider(create: (_) => GetIt.I<TodoFilterCubit>()),
+      ],
       child: BlocBuilder<ThemeCubit, bool>(
         builder: (context, isDarkMode) {
           return MaterialApp.router(

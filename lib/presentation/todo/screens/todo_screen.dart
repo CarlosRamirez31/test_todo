@@ -5,12 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:test_todo/common/button/custom_filled_button.dart';
 import 'package:test_todo/core/cubit/theme/theme_cubit.dart';
 import 'package:test_todo/core/utils/string_format.dart';
-import 'package:test_todo/domain/entities/todo.dart';
 import 'package:test_todo/domain/repositories/todo_repository.dart';
-import 'package:test_todo/infrastructure/models/todo_request.dart';
 import 'package:test_todo/presentation/todo/cubits/get_todo/get_todo_cubit.dart';
 import 'package:test_todo/presentation/todo/cubits/todo_filter/todo_filter_cubit.dart';
 import 'package:test_todo/common/text_form/custom_text_form_field.dart';
+import 'package:test_todo/domain/entities/todo.dart';
 
 class TodoScreen extends StatelessWidget {
   const TodoScreen({super.key});
@@ -19,11 +18,8 @@ class TodoScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(create: (_) => GetIt.I<GetTodoCubit>()..getTodos()),
-        BlocProvider(create: (_) => GetIt.I<TodoFilterCubit>()),
-      ],
+    return BlocProvider(
+      create: (_) => GetIt.I<GetTodoCubit>()..getTodos(),
       child: Builder(
         builder: (contextCubit) {
           return Scaffold(
@@ -47,6 +43,8 @@ class TodoScreen extends StatelessWidget {
                                 lastDate: DateTime(2030),
                               );
                               if (date != null) {
+                                if (!context.mounted) return;
+
                                 context.read<TodoFilterCubit>().setDateFilter(
                                   date,
                                 );
@@ -67,7 +65,9 @@ class TodoScreen extends StatelessWidget {
                                       ? StringFormat.formatDateHeader(
                                         filterState.filterDate!,
                                       )
-                                      : StringFormat.formatDateHeader(DateTime.now()),
+                                      : StringFormat.formatDateHeader(
+                                        DateTime.now(),
+                                      ),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w400,
@@ -163,244 +163,41 @@ class TodoScreen extends StatelessWidget {
                             itemBuilder: (context, index) {
                               final todo = todos[index];
 
-                              return Padding(
-                                padding: EdgeInsets.symmetric(vertical: 5),
-                                child: Dismissible(
-                                  key: Key(todo.id.toString()),
-                                  direction: DismissDirection.horizontal,
-                                  confirmDismiss: (direction) async {
-                                    switch (direction) {
-                                      case DismissDirection.startToEnd:
-                                        context.push(
-                                          '/add_edit_todo',
-                                          extra: todo,
-                                        );
-                                        break;
-                                      case DismissDirection.endToStart:
-                                        await _showDeleteConfirmation(
-                                          context,
-                                          onDelete: () async {
-                                            final result =
-                                                await GetIt.I<TodoRepository>()
-                                                    .deleteTodo(todo.id);
-                                            result.fold(
-                                              (failure) {
-                                                context.pop();
+                              return TodoItem(
+                                todo: todo,
+                                onEdit: () async {
+                                  context.go('/add_edit_todo', extra: todo);
+                                },
+                                onDelete: () async {
+                                  await _showDeleteConfirmation(
+                                    context,
+                                    onDelete: () async {
+                                      final result =
+                                          await GetIt.I<TodoRepository>()
+                                              .deleteTodo(todo.id);
+                                      result.fold(
+                                        (failure) {
+                                          context.pop();
 
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      failure.message,
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                              (success) {
-                                                context
-                                                    .read<GetTodoCubit>()
-                                                    .getTodos();
-
-                                                context.pop();
-                                              },
-                                            );
-                                          },
-                                        );
-                                        break;
-                                      default:
-                                        return false;
-                                    }
-
-                                    return false;
-                                  },
-                                  background: Container(
-                                    alignment: Alignment.centerLeft,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.primary,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      children: [
-                                        Icon(
-                                          Icons.edit,
-                                          color: colorScheme.onPrimary,
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Editar',
-                                          style: TextStyle(
-                                            color: colorScheme.onPrimary,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  secondaryBackground: Container(
-                                    alignment: Alignment.centerRight,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.error,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          'Eliminar',
-                                          style: TextStyle(
-                                            color: colorScheme.onError,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        SizedBox(width: 8),
-                                        Icon(
-                                          Icons.delete,
-                                          color: colorScheme.onError,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.surface,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        if (todo.fechaLimite != null)
-                                          Container(
-                                            width: double.infinity,
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 8,
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(failure.message),
                                             ),
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  colorScheme.primaryContainer,
-                                              borderRadius: BorderRadius.only(
-                                                topLeft: Radius.circular(8),
-                                                topRight: Radius.circular(8),
-                                              ),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.schedule,
-                                                  size: 16,
-                                                  color:
-                                                      colorScheme
-                                                          .onPrimaryContainer,
-                                                ),
-                                                SizedBox(width: 8),
-                                                Text(
-                                                  'Tarea programada para el ${StringFormat.formatScheduledDate(todo.fechaLimite!)}',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color:
-                                                        colorScheme
-                                                            .onPrimaryContainer,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ListTile(
-                                          contentPadding: EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 8,
-                                          ),
-                                          leading: Checkbox(
-                                            value: todo.isCompleted,
-                                            onChanged: (value) async {
-                                              if (value != null) {
-                                                final result = await GetIt.I<
-                                                      TodoRepository
-                                                    >()
-                                                    .toggleTodoStatus(
-                                                      todo.id.toString(),
-                                                    );
-                                                result.fold(
-                                                  (failure) {
-                                                    ScaffoldMessenger.of(
-                                                      context,
-                                                    ).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(
-                                                          failure.message,
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                  (success) {
-                                                    context
-                                                        .read<GetTodoCubit>()
-                                                        .getTodos();
-                                                  },
-                                                );
-                                              }
-                                            },
-                                            materialTapTargetSize:
-                                                MaterialTapTargetSize
-                                                    .shrinkWrap,
-                                          ),
-                                          title: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                todo.title,
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  decoration:
-                                                      todo.isCompleted
-                                                          ? TextDecoration
-                                                              .lineThrough
-                                                          : null,
-                                                  decorationColor:
-                                                      Colors.grey.shade500,
-                                                ),
-                                              ),
-                                              SizedBox(height: 5),
-                                              Text(
-                                                todo.description,
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color:
-                                                      todo.isCompleted
-                                                          ? Colors.grey.shade600
-                                                              .withOpacity(0.5)
-                                                          : Colors
-                                                              .grey
-                                                              .shade600,
-                                                  decoration:
-                                                      todo.isCompleted
-                                                          ? TextDecoration
-                                                              .lineThrough
-                                                          : null,
-                                                  decorationColor:
-                                                      Colors.grey.shade500,
-                                                ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                                          );
+                                        },
+                                        (success) {
+                                          context
+                                              .read<GetTodoCubit>()
+                                              .getTodos();
+
+                                          context.pop();
+                                        },
+                                      );
+                                    },
+                                  );
+                                },
                               );
                             },
                           ),
@@ -421,11 +218,8 @@ class TodoScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              onPressed: () async {
-                final result = await context.push('/add_edit_todo');
-                if (result == true) {
-                  context.read<GetTodoCubit>().getTodos();
-                }
+              onPressed: () {
+                context.pushReplacement('/add_edit_todo');
               },
               child: Icon(Icons.add, color: colorScheme.onTertiary, size: 25),
             ),
@@ -461,36 +255,195 @@ class TodoScreen extends StatelessWidget {
       },
     );
   }
+}
 
-  Future<void> _updateTodoDate(
-    BuildContext context,
-    Todo todo,
-    DateTime date,
-  ) async {
-    final todoRequest = TodoRequest(
-      title: todo.title,
-      description: todo.description,
-      fechaLimite: date,
-      isCompleted: todo.isCompleted,
-    );
+class TodoItem extends StatefulWidget {
+  final Todo todo;
+  final Future<void> Function() onEdit;
+  final Future<void> Function() onDelete;
 
-    final result = await GetIt.I<TodoRepository>().updateTodo(
-      todo.id,
-      todoRequest,
-    );
+  const TodoItem({
+    super.key,
+    required this.todo,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
-    result.fold(
-      (failure) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(failure.message)));
-      },
-      (success) {
-        context.read<GetTodoCubit>().getTodos();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fecha actualizada correctamente')),
-        );
-      },
+  @override
+  State<TodoItem> createState() => _TodoItemState();
+}
+
+class _TodoItemState extends State<TodoItem> {
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final todo = widget.todo;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 5),
+      child: Dismissible(
+        key: ValueKey('${widget.todo.id}'),
+        direction: DismissDirection.horizontal,
+        confirmDismiss: (direction) async {
+          switch (direction) {
+            case DismissDirection.startToEnd:
+              await widget.onEdit();
+              break;
+            case DismissDirection.endToStart:
+              await widget.onDelete();
+              break;
+            default:
+              break;
+          }
+
+          setState(() {});
+          return false;
+        },
+        background: Container(
+          alignment: Alignment.centerLeft,
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: colorScheme.primary,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Icon(Icons.edit, color: colorScheme.onPrimary),
+              SizedBox(width: 8),
+              Text(
+                'Editar',
+                style: TextStyle(
+                  color: colorScheme.onPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        secondaryBackground: Container(
+          alignment: Alignment.centerRight,
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: colorScheme.error,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                'Eliminar',
+                style: TextStyle(
+                  color: colorScheme.onError,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(width: 8),
+              Icon(Icons.delete, color: colorScheme.onError),
+            ],
+          ),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              if (todo.fechaLimite != null)
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(8),
+                      topRight: Radius.circular(8),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.schedule,
+                        size: 16,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Tarea programada para el ${StringFormat.formatScheduledDate(todo.fechaLimite!)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ListTile(
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                leading: Checkbox(
+                  value: todo.isCompleted,
+                  onChanged: (value) async {
+                    if (value != null) {
+                      final result = await GetIt.I<TodoRepository>()
+                          .toggleTodoStatus(todo.id.toString());
+                      result.fold(
+                        (failure) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(failure.message)),
+                          );
+                        },
+                        (success) {
+                          context.read<GetTodoCubit>().getTodos();
+                        },
+                      );
+                    }
+                  },
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      todo.title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        decoration:
+                            todo.isCompleted
+                                ? TextDecoration.lineThrough
+                                : null,
+                        decorationColor: Colors.grey.shade500,
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      todo.description,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color:
+                            todo.isCompleted
+                                ? Colors.grey.shade600.withOpacity(0.5)
+                                : Colors.grey.shade600,
+                        decoration:
+                            todo.isCompleted
+                                ? TextDecoration.lineThrough
+                                : null,
+                        decorationColor: Colors.grey.shade500,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -502,25 +455,24 @@ class FilterSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Column(
-      children: [
-        // Barra de búsqueda
-        BlocBuilder<TodoFilterCubit, TodoFilterState>(
-          builder: (context, filterState) {
-            return CustomTextFormField(
+    return BlocBuilder<TodoFilterCubit, TodoFilterState>(
+      builder: (context, state) {
+        final filterState = context.watch<TodoFilterCubit>().state;
+
+        return Column(
+          children: [
+            // Barra de búsqueda
+            CustomTextFormField(
               hintText: 'Buscar tareas...',
               initialValue: filterState.query,
               onChanged: (query) {
                 context.read<TodoFilterCubit>().queryChanged(query);
               },
-            );
-          },
-        ),
+            ),
 
-        SizedBox(height: 12),
-        BlocBuilder<TodoFilterCubit, TodoFilterState>(
-          builder: (context, filterState) {
-            return Wrap(
+            SizedBox(height: 12),
+
+            Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
@@ -571,10 +523,10 @@ class FilterSection extends StatelessWidget {
                           context.read<TodoFilterCubit>().showCompletedTodos(),
                 ),
               ],
-            );
-          },
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 }

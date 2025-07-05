@@ -69,7 +69,7 @@ class _AddEditTodoViewState extends State<AddEditTodoView> {
                       ),
                     ),
                     IconButton(
-                      onPressed: () => context.pop(),
+                      onPressed: () => context.go('/todo'),
                       icon: const Icon(Icons.close),
                     ),
                   ],
@@ -131,16 +131,18 @@ class _AddEditTodoViewState extends State<AddEditTodoView> {
                                     ),
                                   ),
                                 ),
-                                                                 IconButton(
-                                   onPressed: () {
-                                     context.read<TodoFormCubit>().clearFechaLimite();
-                                   },
-                                   icon: Icon(
-                                     Icons.clear,
-                                     size: 18,
-                                     color: colorScheme.onPrimaryContainer,
-                                   ),
-                                 ),
+                                IconButton(
+                                  onPressed: () {
+                                    context
+                                        .read<TodoFormCubit>()
+                                        .clearFechaLimite();
+                                  },
+                                  icon: Icon(
+                                    Icons.clear,
+                                    size: 18,
+                                    color: colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -152,12 +154,17 @@ class _AddEditTodoViewState extends State<AddEditTodoView> {
                                 onPressed: () async {
                                   final date = await showDatePicker(
                                     context: context,
-                                    initialDate: state.fechaLimite ?? DateTime.now(),
+                                    initialDate:
+                                        state.fechaLimite ?? DateTime.now(),
                                     firstDate: DateTime.now(),
                                     lastDate: DateTime(2030),
                                   );
                                   if (date != null) {
-                                    context.read<TodoFormCubit>().fechaLimiteChanged(date);
+                                    if (!context.mounted) return;
+
+                                    context
+                                        .read<TodoFormCubit>()
+                                        .fechaLimiteChanged(date);
                                   }
                                 },
                                 icon: Icon(Icons.calendar_today),
@@ -167,7 +174,10 @@ class _AddEditTodoViewState extends State<AddEditTodoView> {
                                       : 'Asignar fecha límite',
                                 ),
                                 style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -217,7 +227,7 @@ class _AddEditTodoViewState extends State<AddEditTodoView> {
                             );
                           },
                           (success) {
-                            context.pop(true);
+                            context.go('/todo');
                           },
                         );
                       } else {
@@ -231,7 +241,7 @@ class _AddEditTodoViewState extends State<AddEditTodoView> {
                             );
                           },
                           (success) {
-                            context.pop(true);
+                            context.go('/todo');
                           },
                         );
                       }
